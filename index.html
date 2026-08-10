@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sell now or sell later — the capital-gains timing question</title>
+<meta name="description" content="What an extra capital-gains realization costs during a working year versus a no-wage year. Washington State, 2026 federal.">
+<style>
+  :root {
+    --ink:#14171c; --paper:#f7f8f7; --muted:#677079; --rule:#e0e3e2;
+    --raise:#ffffff; --accent:#12695a; --accent-wash:#12695a14; --bad:#a32c2c; --bad-wash:#a32c2c12;
+    --warn:#8a5a10; --warn-wash:#8a5a1012;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e6e9e7; --paper:#101314; --muted:#8f9a99; --rule:#262b2c; --raise:#171b1c;
+            --accent:#4fbfa8; --accent-wash:#4fbfa81f; --bad:#e08585; --bad-wash:#e0858518;
+            --warn:#d9a05b; --warn-wash:#d9a05b18; }
+  }
+  :root[data-theme="dark"] { --ink:#e6e9e7; --paper:#101314; --muted:#8f9a99; --rule:#262b2c; --raise:#171b1c;
+    --accent:#4fbfa8; --accent-wash:#4fbfa81f; --bad:#e08585; --bad-wash:#e0858518; --warn:#d9a05b; --warn-wash:#d9a05b18; }
+  :root[data-theme="light"] { --ink:#14171c; --paper:#f7f8f7; --muted:#677079; --rule:#e0e3e2; --raise:#ffffff;
+    --accent:#12695a; --accent-wash:#12695a14; --bad:#a32c2c; --bad-wash:#a32c2c12; --warn:#8a5a10; --warn-wash:#8a5a1012; }
+
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;
+       margin:0;padding:0 1rem 5rem;-webkit-text-size-adjust:100%}
+  .wrap{max-width:50rem;margin:0 auto}
+  header{padding:3rem 0 1.2rem}
+  h1{font-size:clamp(1.7rem,5vw,2.3rem);line-height:1.1;letter-spacing:-.02em;margin:0 0 .6rem;font-weight:650}
+  .sub{color:var(--muted);margin:0;max-width:38rem}
+  h2{font-size:1.05rem;margin:2.2rem 0 .7rem;font-weight:650;letter-spacing:-.01em}
+  .hint{color:var(--muted);font-size:.85rem}
+
+  .card{background:var(--raise);border:1px solid var(--rule);border-radius:4px;padding:1rem 1.1rem}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:.9rem}
+  label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.25rem}
+  input[type=number]{width:100%;font-family:var(--mono);font-size:.95rem;padding:.45rem .55rem;
+    border:1px solid var(--rule);border-radius:3px;background:var(--paper);color:var(--ink);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .slider-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:.3rem}
+  .slider-head .val{font-family:var(--mono);font-size:1.6rem;font-weight:650;font-variant-numeric:tabular-nums}
+  .track{position:relative;height:2.6rem;margin-top:.1rem}
+  .track .tick{position:absolute;top:0;transform:translateX(-50%);font-family:var(--mono);font-size:.68rem;
+               color:var(--muted);text-align:center;line-height:1.25;white-space:nowrap}
+  .track .tick i{font-style:normal;opacity:.72;display:block}
+  .snap{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.4rem}
+  .snap button{font-family:var(--mono);font-size:.72rem;padding:.2rem .45rem;border:1px solid var(--rule);
+    border-radius:2px;background:var(--paper);color:var(--muted);cursor:pointer}
+  .snap button:hover,.snap button:focus-visible{border-color:var(--accent);color:var(--accent)}
+
+  .headline{border:1px solid var(--bad);background:var(--bad-wash);border-radius:4px;padding:1.1rem 1.2rem;margin:1.2rem 0 0}
+  .headline .k{font-size:.73rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .headline .v{font-family:var(--mono);font-size:2.4rem;font-weight:700;color:var(--bad);
+               font-variant-numeric:tabular-nums;line-height:1.1;margin:.15rem 0}
+  .headline .n{font-size:.9rem;color:var(--ink)}
+
+  .pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:1px;background:var(--rule);
+        border:1px solid var(--rule);border-radius:4px;overflow:hidden;margin:.9rem 0 0}
+  .cell{background:var(--raise);padding:.8rem .9rem}
+  .cell .k{font-size:.71rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.25rem}
+  .cell .v{font-family:var(--mono);font-size:1.25rem;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.1}
+  .cell .n{font-size:.76rem;color:var(--muted);margin-top:.2rem}
+
+  .scroll{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;background:var(--raise)}
+  table{border-collapse:collapse;width:100%;font-size:.87rem}
+  th,td{text-align:right;padding:.5rem .75rem;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left;font-variant-numeric:normal}
+  th{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  tbody tr:last-child td{border-bottom:0}
+  tr.total td{font-weight:700;border-top:2px solid var(--rule)}
+  tr.memo td{color:var(--muted);font-size:.82rem}
+  tr.memo td:first-child{padding-left:1.6rem}
+  td.zero,td.flat{color:var(--muted)}
+  .up{color:var(--bad);font-weight:650}
+
+  .bars{margin-top:.8rem}
+  .barrow{display:grid;grid-template-columns:5.5rem 1fr;gap:.6rem;align-items:center;margin-bottom:.45rem;font-size:.8rem}
+  .bar{height:1.35rem;background:var(--rule);border-radius:2px;overflow:hidden;display:flex}
+  .seg{height:100%}
+  .seg.free{background:var(--accent)} .seg.f15{background:var(--bad);opacity:.75} .seg.f20{background:var(--bad)}
+  .legend{display:flex;gap:1rem;font-size:.76rem;color:var(--muted);margin-top:.5rem;flex-wrap:wrap}
+  .sw{display:inline-block;width:.7rem;height:.7rem;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
+
+  .note{border:1px solid var(--warn);background:var(--warn-wash);border-radius:3px;padding:.7rem .9rem;
+        font-size:.86rem;margin:1.2rem 0}
+  .note b{color:var(--warn)}
+  details{margin-top:1.6rem;border:1px solid var(--rule);border-radius:4px;background:var(--raise)}
+  summary{cursor:pointer;padding:.7rem .9rem;font-weight:600;font-size:.9rem}
+  .details-body{padding:0 .9rem 1rem}
+  .status{display:flex;gap:1.4rem;flex-wrap:wrap;padding:.6rem .8rem;border:1px solid var(--rule);
+          border-radius:3px;background:var(--paper)}
+  .status label{display:flex;align-items:center;gap:.4rem;font-size:.9rem;color:var(--ink);cursor:pointer;margin:0}
+  .status input{accent-color:var(--accent)}
+  .tag{font-family:var(--mono);font-size:.68rem;padding:.08rem .3rem;border-radius:2px;border:1px solid var(--rule);color:var(--muted)}
+  .tag.on{color:var(--accent);border-color:var(--accent);background:var(--accent-wash)}
+  .tag.off{color:var(--warn);border-color:var(--warn);background:var(--warn-wash)}
+  footer{margin-top:2.4rem;padding-top:1.1rem;border-top:1px solid var(--rule);font-size:.8rem;color:var(--muted)}
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Sell now or sell later?</h1>
+  <p class="sub">You need to sell some stock to live on. Selling <em>more</em> than that is a timing choice — do it in a year you're working, or wait for one you're not. This prices that choice. Income tax and FICA on the wages are deliberately excluded; this is only what happens to your <em>capital gains</em>.</p>
+</header>
+
+<div class="card">
+  <div class="slider-head"><span class="val" id="wLbl">$0</span><span class="hint">W-2 wages</span></div>
+  <input type="range" id="wage" min="0" max="800000" step="20000" value="0" aria-label="Work income">
+  <div class="track" id="wTicks"></div>
+
+  <div class="slider-head" style="margin-top:.6rem"><span class="val" id="lLbl">$300,000</span><span class="hint">gains sold to live on</span></div>
+  <input type="range" id="ltcg" min="0" max="1500000" step="1000" value="300000" aria-label="Capital gains needed to live">
+  <div class="track" id="lTicks"></div>
+  <div class="snap" id="lSnap"></div>
+
+  <div class="slider-head" style="margin-top:.9rem"><span class="val" id="xLbl">$0</span><span class="hint">extra gains sold on top</span></div>
+  <input type="range" id="extra" min="0" max="500000" step="5000" value="0" aria-label="Extra capital gains sold">
+  <div class="track" id="xTicks"></div>
+  <p class="hint" id="totalLine" style="margin:.2rem 0 0"></p>
+</div>
+
+<div id="extraBox" hidden>
+  <div class="headline">
+    <div class="k">Penalty for selling now instead of a no-wage year</div>
+    <div class="v" id="xPen">$0</div>
+    <div class="n" id="xPenNote"></div>
+  </div>
+  <div class="pair" id="xPair"></div>
+</div>
+
+<h2>What the wages cost your gains</h2>
+<div class="headline">
+  <div class="k">Extra capital-gains tax caused by working</div>
+  <div class="v" id="delta">$0</div>
+  <div class="n" id="deltaNote">Move the wages slider.</div>
+</div>
+<div class="pair" id="pair"></div>
+
+<h2>Summary</h2>
+<div id="summary"></div>
+
+<h2>Which taxes move</h2>
+<div class="scroll">
+  <table>
+    <thead><tr><th>Capital-gains tax</th><th>With work</th><th>Without work</th><th>Change</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+<p class="hint" style="margin-top:.5rem">Washington's capital-gains tax keys off the realized gain alone, so wages never move it. All of the damage is federal.</p>
+
+<h2>Where the gains sit</h2>
+<div class="card">
+  <div class="bars" id="bars"></div>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent)"></span>0% federal</span>
+    <span><span class="sw" style="background:var(--bad);opacity:.75"></span>15%</span>
+    <span><span class="sw" style="background:var(--bad)"></span>20%</span>
+  </div>
+  <p id="displaced" style="margin:.9rem 0 0"></p>
+</div>
+
+<div class="note">
+  <b>Washington's 2026 exemption isn't published yet.</b> DOR indexes it each October under
+  <a href="https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.150">RCW 82.87.150</a>, but has only posted 2024 ($270,000) and 2025 ($278,000).
+  This tool uses the <b>2025</b> figure with <b>2026</b> federal numbers, so the WA side is likely a few thousand dollars conservative until DOR publishes.
+</div>
+
+<details>
+  <summary>Assumptions &amp; sources</summary>
+  <div class="details-body">
+    <p class="hint">Filing status drives the deduction and the federal thresholds. Every figure below links to the authority that states it.</p>
+    <div class="status">
+      <label><input type="radio" name="fs" value="mfj" checked> Married filing jointly</label>
+      <label><input type="radio" name="fs" value="single"> Single</label>
+    </div>
+    <p class="hint" style="margin:.5rem 0 1rem">Switching reloads all federal presets, overwriting edits.</p>
+
+    <div class="grid2">
+      <div><label for="stdded">Standard deduction</label><input type="number" id="stdded" value="32200" step="100" min="0"></div>
+      <div><label for="ltcg0">Fed 0% LTCG ceiling (taxable)</label><input type="number" id="ltcg0" value="98900" step="100" min="0"></div>
+      <div><label for="ltcg15">Fed 15%→20% boundary (taxable)</label><input type="number" id="ltcg15" value="613700" step="100" min="0"></div>
+      <div><label for="niit">NIIT threshold (MAGI)</label><input type="number" id="niit" value="250000" step="1000" min="0"></div>
+      <div><label for="niitRate">NIIT rate %</label><input type="number" id="niitRate" value="3.8" step="0.1" min="0"></div>
+      <div><label for="waExempt">WA standard deduction <span class="tag off">2025</span></label><input type="number" id="waExempt" value="278000" step="1000" min="0"></div>
+    </div>
+    <p class="hint" style="margin-top:.7rem">WA's 9.9% surcharge starts $1,000,000 above the deduction — that $1M is fixed in statute and not indexed, so it's derived here rather than entered (<span id="kinkNow" class="tag"></span>).</p>
+
+    <h2 style="font-size:.95rem;margin:1.4rem 0 .5rem">Sources</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Figure</th><th>Value</th><th>Authority</th><th>Year</th></tr></thead>
+      <tbody>
+        <tr><td>Standard deduction MFJ</td><td>$32,200</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.14</a></td><td>2026</td></tr>
+        <tr><td>Standard deduction Single</td><td>$16,100</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.14</a></td><td>2026</td></tr>
+        <tr><td>Fed 0% LTCG ceiling MFJ</td><td>$98,900</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.03</a></td><td>2026</td></tr>
+        <tr><td>Fed 15%→20% MFJ</td><td>$613,700</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.03</a></td><td>2026</td></tr>
+        <tr><td>Fed 0% LTCG ceiling Single</td><td>$49,450</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.03</a></td><td>2026</td></tr>
+        <tr><td>Fed 15%→20% Single</td><td>$545,500</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.03</a></td><td>2026</td></tr>
+        <tr><td>NIIT 3.8%, $250K MFJ / $200K Single</td><td>unindexed</td><td><a href="https://www.irs.gov/individuals/net-investment-income-tax">IRS — NIIT</a></td><td>all</td></tr>
+        <tr><td>WA standard deduction</td><td>$278,000</td><td><a href="https://dor.wa.gov/taxes-rates/other-taxes/capital-gains-tax">WA DOR</a></td><td>2025</td></tr>
+        <tr><td>WA deduction is per individual, not doubled for MFJ</td><td>$250K base</td><td><a href="https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.060">RCW 82.87.060</a></td><td>all</td></tr>
+        <tr><td>WA 7% + 2.9% surcharge over $1M</td><td>not indexed</td><td><a href="https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.040">RCW 82.87.040</a></td><td>2025→</td></tr>
+        <tr><td>WA indexing mechanism</td><td>Oct CPI</td><td><a href="https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.150">RCW 82.87.150</a></td><td>all</td></tr>
+        <tr><td>LTCG stacks above ordinary income</td><td>—</td><td><a href="https://www.law.cornell.edu/uscode/text/26/1">IRC §1(h)(1)</a></td><td>all</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2 style="font-size:.95rem;margin:1.4rem 0 .5rem">Deliberately excluded</h2>
+    <ul class="hint" style="margin:0;padding-left:1.1rem">
+      <li>Income tax and FICA on the wages — this models the gains only.</li>
+      <li>Whether WA capital-gains tax reduces the federal amount realized under §164(a). The position is unsettled and circular; excluding it makes this model slightly conservative (~$290 at a $300K draw).</li>
+      <li>Itemizing instead of the standard deduction, 401(k)/HSA deferrals, AMT, ACA subsidies, IRMAA, state income tax (none in WA until the 2028 millionaires' tax at $1M).</li>
+      <li>Market risk of holding, which is the actual reason not to defer a sale forever.</li>
+    </ul>
+  </div>
+</details>
+
+<footer>
+  Model verified line-by-line against <a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32</a>, <a href="https://app.leg.wa.gov/RCW/default.aspx?cite=82.87">RCW 82.87</a> and <a href="https://www.law.cornell.edu/uscode/text/26/1">IRC §1(h)</a>. Companion to <a href="https://idvork.in/taxes">idvork.in/taxes</a> — note this tool uses the 2026 standard deduction of $32,200, which differs from that post. Not tax advice.
+</footer>
+</div>
+
+<script type="module">
+import { calc, presets, WA_SURCHARGE_OFFSET } from "./tax.js";
+const $ = id => document.getElementById(id);
+const num = id => parseFloat($(id).value) || 0;
+const money = n => (n<0?"−$":"$") + Math.round(Math.abs(n)).toLocaleString();
+const pct = n => (n*100).toFixed(1) + "%";
+
+function ticks(el, slider, marks){
+  const max = +slider.max;
+  el.innerHTML = marks.map(m =>
+    `<span class="tick" style="left:${(m.v/max*100).toFixed(2)}%">${m.l}${m.s?`<i>${m.s}</i>`:""}</span>`
+  ).join("");
+}
+
+function render(){
+  const wage = num("wage"), base = num("ltcg"), extra = num("extra");
+  const ltcg = base + extra;
+  $("wLbl").textContent = money(wage);
+  $("lLbl").textContent = money(base);
+  $("xLbl").textContent = money(extra);
+  $("kinkNow").textContent = "currently " + money(num("waExempt") + WA_SURCHARGE_OFFSET);
+  $("totalLine").innerHTML = extra > 0
+    ? `Total realized: <b>${money(ltcg)}</b> — ${money(base)} to live on plus ${money(extra)} extra.`
+    : `Total realized: <b>${money(base)}</b>.`;
+
+  const K = kAll();
+  const noExtra  = calc(wage, base, K);
+  const xCostNow = calc(wage, ltcg, K).total - noExtra.total;
+  const xCostLtr = calc(0, ltcg, K).total - calc(0, base, K).total;
+  const penalty  = xCostNow - xCostLtr;
+
+  $("extraBox").hidden = extra <= 0;
+  if (extra > 0){
+    $("xPen").textContent = money(penalty);
+    $("xPenNote").innerHTML = penalty > 0
+      ? `Waiting for a no-wage year saves <b>${money(penalty)}</b> on this ${money(extra)} sale — ${pct(xCostNow/extra)} now vs ${pct(xCostLtr/extra)} later.`
+      : `No penalty at this wage level. The slice costs <b>${pct(xCostNow/extra)}</b> either way, so waiting buys nothing on this sale.`;
+    $("xPair").innerHTML = `
+      <div class="cell"><div class="k">Sell now — working</div><div class="v">${money(xCostNow)}</div>
+        <div class="n">${pct(xCostNow/extra)}, net ${money(extra-xCostNow)}</div></div>
+      <div class="cell"><div class="k">Sell later — no wages</div><div class="v">${money(xCostLtr)}</div>
+        <div class="n">${pct(xCostLtr/extra)}, net ${money(extra-xCostLtr)}</div></div>
+      <div class="cell"><div class="k">Living draw, no-wage year</div><div class="v">${pct(base?calc(0,base,K).total/base:0)}</div>
+        <div class="n">${money(base)} realized</div></div>`;
+  }
+
+  const A = calc(wage, ltcg, K), B = calc(0, ltcg, K);
+  const d = A.total - B.total;
+  const rateB = ltcg ? B.total/ltcg : 0, rateA = ltcg ? A.total/ltcg : 0;
+
+  $("delta").textContent = money(d);
+  $("deltaNote").innerHTML = wage > 0
+    ? `<b>${((rateA-rateB)*100).toFixed(1)}%</b> of your realized gains, eaten by working — the gains rate goes ${pct(rateB)} → ${pct(rateA)}.`
+    : "Move the wages slider.";
+
+  $("pair").innerHTML = `
+    <div class="cell"><div class="k">Gains rate without work</div><div class="v">${pct(rateB)}</div>
+      <div class="n">${money(B.total)} on ${money(ltcg)}</div></div>
+    <div class="cell"><div class="k">Gains rate with work</div><div class="v">${pct(rateA)}</div>
+      <div class="n">${money(A.total)} on ${money(ltcg)}</div></div>
+    <div class="cell"><div class="k">Gains eaten by working</div><div class="v">+${((rateA-rateB)*100).toFixed(1)} pts</div>
+      <div class="n">${wage>0 ? pct(d/wage)+" of the wages" : "—"}</div></div>`;
+
+  const row = (label,a,b,flat) => {
+    const dd=a-b;
+    return `<tr><td>${label}</td><td>${money(a)}</td><td>${money(b)}</td>
+      <td class="${dd>0?"up":(flat?"flat":"zero")}">${dd>0?"+"+money(dd):(flat?"no change":"—")}</td></tr>`;
+  };
+  $("rows").innerHTML =
+    row("Federal LTCG", A.fedLtcg, B.fedLtcg) +
+    row("NIIT", A.nii, B.nii) +
+    row("Washington", A.wa, B.wa, true) +
+    `<tr class="total"><td>Total</td><td>${money(A.total)}</td><td>${money(B.total)}</td>
+      <td class="${d>0?"up":"zero"}">${d>0?"+"+money(d):"—"}</td></tr>`;
+
+  const maxW = Math.max(A.ltcgTaxable, B.ltcgTaxable, 1);
+  const bar = o => {
+    const seg=(v,c)=> v>0?`<div class="seg ${c}" style="width:${Math.min(100,v/maxW*100).toFixed(2)}%"></div>`:"";
+    return `<div class="bar">${seg(o.b0,"free")}${seg(o.b15,"f15")}${seg(o.b20,"f20")}</div>`;
+  };
+  $("bars").innerHTML =
+    `<div class="barrow"><span>No work</span>${bar(B)}</div>` +
+    `<div class="barrow"><span>Working</span>${bar(A)}</div>`;
+
+  const fedDelta = A.fedLtcg - B.fedLtcg;
+  const lost = B.b0 - A.b0;
+  $("displaced").innerHTML = fedDelta > 0
+    ? `Working raised your federal LTCG bill by <b>${money(fedDelta)}</b> — two effects at once: <b>${money(lost)}</b> pushed out of the 0% bracket, and the standard deduction reallocated from your gains to your wages.`
+    : `Nothing displaced yet.`;
+
+  // Summary — wages shown as a memo line, not a third addend
+  $("summary").innerHTML = `
+    <div class="scroll"><table>
+      <thead><tr><th>Summary</th><th>Amount</th><th>CG tax</th><th>Rate</th></tr></thead>
+      <tbody>
+        <tr><td>Gains to live on</td><td>${money(base)}</td><td>${money(noExtra.total)}</td>
+            <td>${pct(base?noExtra.total/base:0)}</td></tr>
+        ${extra>0?`<tr><td>Extra gains sold</td><td>${money(extra)}</td><td>${money(xCostNow)}</td>
+            <td class="up">${pct(xCostNow/extra)}</td></tr>`:""}
+        <tr class="total"><td>All capital-gains tax</td><td>${money(ltcg)} realized</td>
+            <td>${money(A.total)}</td><td>${pct(ltcg?A.total/ltcg:0)}</td></tr>
+        ${wage>0?`<tr class="memo"><td>of which caused by ${money(wage)} of wages</td><td>—</td>
+            <td>${money(d)}</td><td>${pct(d/wage)} of wages</td></tr>`:""}
+      </tbody></table></div>
+    <p class="hint" style="margin:.6rem 0 0">You keep <b>${money(ltcg-A.total)}</b> of ${money(ltcg)} realized${wage>0?`, before any income tax on the wages`:""}.</p>`;
+}
+
+function kAll(){ return { stdded:num("stdded"), ltcg0:num("ltcg0"), ltcg15:num("ltcg15"),
+                          niit:num("niit"), niitRate:num("niitRate"), waExempt:num("waExempt") }; }
+function applyStatus(){
+  const s = presets(document.querySelector('input[name=fs]:checked').value);
+  for (const k of ["stdded","ltcg0","ltcg15","niit"]) $(k).value = s[k];
+  render();
+}
+
+ticks($("wTicks"), $("wage"), [{v:0,l:"$0"},{v:200000,l:"$200K"},{v:400000,l:"$400K"},{v:600000,l:"$600K"},{v:800000,l:"$800K"}]);
+ticks($("lTicks"), $("ltcg"), [{v:0,l:"$0"},{v:278000,l:"$278K",s:"WA starts"},{v:613700,l:"$614K",s:"20% fed"},{v:1278000,l:"$1.278M",s:"WA 9.9%"}]);
+ticks($("xTicks"), $("extra"), [{v:0,l:"$0"},{v:125000,l:"$125K"},{v:250000,l:"$250K"},{v:375000,l:"$375K"},{v:500000,l:"$500K"}]);
+
+$("lSnap").innerHTML = [["WA deduction",278000],["Fed 20%",613700],["WA surcharge",1278000]]
+  .map(([l,v])=>`<button type="button" data-v="${v}">↦ ${l}</button>`).join("");
+$("lSnap").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  $("ltcg").value = b.dataset.v; render();
+});
+
+document.querySelectorAll('input[name=fs]').forEach(el => el.addEventListener("change", applyStatus));
+document.querySelectorAll('input[type=range], input[type=number]').forEach(el => el.addEventListener("input", render));
+render();
+</script>
+</body>
+</html>
