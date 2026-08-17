@@ -82,6 +82,12 @@
   .seg.free{background:var(--accent)} .seg.f15{background:var(--bad);opacity:.75} .seg.f20{background:var(--bad)}
   .legend{display:flex;gap:1rem;font-size:.76rem;color:var(--muted);margin-top:.5rem;flex-wrap:wrap}
   .sw{display:inline-block;width:.7rem;height:.7rem;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
+  /* dashed swatch mirrors the dashed curve, so the two series are told apart
+     by more than hue — they sit close together for deuteranopes in dark mode */
+  .sw.dash{width:1.1rem;height:0;border-top:2px dashed var(--bad);border-radius:0;vertical-align:.15rem}
+  .sw.band{background:var(--bad);opacity:.28}
+  canvas.chart{display:block;width:100%;touch-action:pan-y}
+  .chartcap{font-size:.82rem;color:var(--muted);margin:.6rem 0 0}
 
   .note{border:1px solid var(--warn);background:var(--warn-wash);border-radius:3px;padding:.7rem .9rem;
         font-size:.86rem;margin:1.2rem 0}
@@ -134,6 +140,32 @@
   </div>
   <div class="pair" id="xPair"></div>
 </div>
+
+<h2>The shape of it</h2>
+<div class="card">
+  <p class="hint" style="margin:0 0 .7rem">Capital-gains tax as you realize more and more, swept from $0. One curve for a
+    working year at your current wages, one for a no-wage year — the band between them is what the wages cost.</p>
+  <canvas class="chart" id="sweep" role="img" aria-label="Swept capital-gains tax comparison"></canvas>
+  <div class="legend" id="sweepLegend"></div>
+  <p class="chartcap" id="sweepCap"></p>
+</div>
+
+<div class="card" style="margin-top:.9rem">
+  <p class="hint" style="margin:0 0 .7rem" id="cliffIntro"></p>
+  <canvas class="chart" id="cliff" role="img" aria-label="Timing penalty against wage level"></canvas>
+  <p class="chartcap" id="cliffCap"></p>
+</div>
+
+<details>
+  <summary>The swept numbers</summary>
+  <div class="details-body">
+    <p class="hint">The first chart, as a table — same sweep, nine evenly spaced realizations.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Realized</th><th>No-wage year</th><th>Working year</th><th>Wages cost</th></tr></thead>
+      <tbody id="sweepRows"></tbody>
+    </table></div>
+  </div>
+</details>
 
 <h2>What the wages cost your gains</h2>
 <div class="headline">
@@ -196,12 +228,12 @@
     <div class="scroll"><table>
       <thead><tr><th>Figure</th><th>Value</th><th>Authority</th><th>Year</th></tr></thead>
       <tbody>
-        <tr><td>Standard deduction MFJ</td><td>$32,200</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.14</a></td><td>2026</td></tr>
-        <tr><td>Standard deduction Single</td><td>$16,100</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.14</a></td><td>2026</td></tr>
-        <tr><td>Fed 0% LTCG ceiling MFJ</td><td>$98,900</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.03</a></td><td>2026</td></tr>
-        <tr><td>Fed 15%→20% MFJ</td><td>$613,700</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.03</a></td><td>2026</td></tr>
-        <tr><td>Fed 0% LTCG ceiling Single</td><td>$49,450</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.03</a></td><td>2026</td></tr>
-        <tr><td>Fed 15%→20% Single</td><td>$545,500</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §3.03</a></td><td>2026</td></tr>
+        <tr><td>Standard deduction MFJ</td><td>$32,200</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §4.14</a></td><td>2026</td></tr>
+        <tr><td>Standard deduction Single</td><td>$16,100</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §4.14</a></td><td>2026</td></tr>
+        <tr><td>Fed 0% LTCG ceiling MFJ</td><td>$98,900</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §4.03</a></td><td>2026</td></tr>
+        <tr><td>Fed 15%→20% MFJ</td><td>$613,700</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §4.03</a></td><td>2026</td></tr>
+        <tr><td>Fed 0% LTCG ceiling Single</td><td>$49,450</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §4.03</a></td><td>2026</td></tr>
+        <tr><td>Fed 15%→20% Single</td><td>$545,500</td><td><a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf">Rev. Proc. 2025-32 §4.03</a></td><td>2026</td></tr>
         <tr><td>NIIT 3.8%, $250K MFJ / $200K Single</td><td>unindexed</td><td><a href="https://www.irs.gov/individuals/net-investment-income-tax">IRS — NIIT</a></td><td>all</td></tr>
         <tr><td>WA standard deduction</td><td>$278,000</td><td><a href="https://dor.wa.gov/taxes-rates/other-taxes/capital-gains-tax">WA DOR</a></td><td>2025</td></tr>
         <tr><td>WA deduction is per individual, not doubled for MFJ</td><td>$250K base</td><td><a href="https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.060">RCW 82.87.060</a></td><td>all</td></tr>
@@ -228,6 +260,7 @@
 
 <script type="module">
 import { calc, presets, WA_SURCHARGE_OFFSET } from "./tax.js";
+import { createChart, gainsSweepSpec, penaltyCliffSpec, cliffFacts, tokens, sweepDomain } from "./chart.js";
 const $ = id => document.getElementById(id);
 const num = id => parseFloat($(id).value) || 0;
 const money = n => (n<0?"−$":"$") + Math.round(Math.abs(n)).toLocaleString();
@@ -331,6 +364,54 @@ function render(){
             <td>${money(d)}</td><td>${pct(d/wage)} of wages</td></tr>`:""}
       </tbody></table></div>
     <p class="hint" style="margin:.6rem 0 0">You keep <b>${money(ltcg-A.total)}</b> of ${money(ltcg)} realized${wage>0?`, before any income tax on the wages`:""}.</p>`;
+
+  renderCharts({ wage, base, extra, K, delta: d, penalty });
+}
+
+const sweepChart = createChart($("sweep"));
+const cliffChart = createChart($("cliff"));
+const PREVIEW_SLICE = 100000;   // the README's reference slice, shown before you set your own
+
+function renderCharts({wage, base, extra, K, delta, penalty}){
+  const total = base + extra, working = wage > 0;
+
+  // Charts take a builder, not a spec: a theme flip re-reads the CSS tokens.
+  sweepChart.update(() => gainsSweepSpec(wage, base, extra, K, tokens()));
+
+  $("sweepLegend").innerHTML = working
+    ? `<span><span class="sw" style="background:var(--accent)"></span>No-wage year</span>
+       <span><span class="sw dash"></span>Working year — ${money(wage)} of wages</span>
+       <span><span class="sw band"></span>What the wages cost</span>`
+    : `<span><span class="sw" style="background:var(--accent)"></span>No-wage year</span>`;
+
+  $("sweepCap").innerHTML = !working
+    ? `Wages are at <b>$0</b>, so there is only one curve. Raise the wages slider and a second curve lifts away from it — the gap is the damage.`
+    : `At ${money(total)} realized the band is <b>${money(delta)}</b> — the same number as “extra capital-gains tax caused by working” below.`
+      + (extra > 0
+          ? ` It widens by <b>${money(penalty)}</b> between your ${money(base)} draw and ${money(total)}, and <em>that widening is the timing penalty</em>.`
+          : ` Sell something extra and the band's widening across that slice is the penalty.`);
+
+  // With no extra sale the penalty is genuinely $0 at every wage, which makes a
+  // dead chart. Show the README's reference slice instead, flagged as illustrative.
+  const preview = extra <= 0, slice = preview ? PREVIEW_SLICE : extra;
+  cliffChart.update(() => penaltyCliffSpec(wage, base, slice, K, tokens(), preview));
+
+  const { foot, plateau } = cliffFacts(base, slice, K);
+  $("cliffIntro").innerHTML = `What that ${money(slice)} slice costs you at every wage level`
+    + (preview ? ` — <em>illustrative, until you set an extra sale above</em>` : ``) + `.`;
+  $("cliffCap").innerHTML = foot == null
+    ? `Flat at <b>$0</b> the whole way: at a ${money(base)} draw, wages never push this slice into a higher bracket.`
+    : `A cliff, not a slope — <b>$0</b> until about <b>${money(foot)}</b> of wages, then it appears and flattens out at
+       <b>${money(plateau)}</b>. Past the top of the cliff, earning more costs your gains nothing extra.`;
+
+  // Same sweep as a table, for screen readers and anyone who wants the numbers.
+  const xMax = sweepDomain(total);
+  $("sweepRows").innerHTML = Array.from({length: 9}, (_, i) => {
+    const x = (xMax * i) / 8;
+    const b = calc(0, x, K).total, a = calc(wage, x, K).total, g = a - b;
+    return `<tr><td>${money(x)}</td><td>${money(b)}</td><td>${money(a)}</td>
+      <td class="${g > 0 ? "up" : "zero"}">${g > 0 ? "+" + money(g) : "—"}</td></tr>`;
+  }).join("");
 }
 
 function kAll(){ return { stdded:num("stdded"), ltcg0:num("ltcg0"), ltcg15:num("ltcg15"),
