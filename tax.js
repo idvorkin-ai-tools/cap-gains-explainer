@@ -14,8 +14,9 @@ export const CONSTANTS = {
 };
 
 export const SOURCES = {
-  stdded:   "Rev. Proc. 2025-32 §3.14 — https://www.irs.gov/pub/irs-drop/rp-25-32.pdf (2026)",
-  ltcg:     "Rev. Proc. 2025-32 §3.03 — https://www.irs.gov/pub/irs-drop/rp-25-32.pdf (2026)",
+  // §4 is "2026 Adjusted Items"; §3 covers 2025 and has only .01/.02.
+  stdded:   "Rev. Proc. 2025-32 §4.14 — https://www.irs.gov/pub/irs-drop/rp-25-32.pdf (2026)",
+  ltcg:     "Rev. Proc. 2025-32 §4.03 — https://www.irs.gov/pub/irs-drop/rp-25-32.pdf (2026)",
   niit:     "IRS — https://www.irs.gov/individuals/net-investment-income-tax (unindexed)",
   waExempt: "WA DOR — https://dor.wa.gov/taxes-rates/other-taxes/capital-gains-tax (2025; 2026 unpublished)",
   waRates:  "RCW 82.87.040 — https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.040",
