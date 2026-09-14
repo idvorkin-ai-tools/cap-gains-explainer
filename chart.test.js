@@ -7,10 +7,14 @@ import { calc, timingPenalty, presets } from "./tax.js";
 import {
   niceTicks, sweepDomain, sampleCurve,
   gainsBreaks, wageBreaks, axisMoney, firstRise, SWEEP_STEPS,
-  penaltyFn, cliffFacts, axisMax,
+  penaltyFn, cliffFacts, axisMax, gainsSweepSpec, penaltyCliffSpec,
 } from "./chart.js";
 
 const M = presets("mfj");
+// The spec builders read colours off a token object and never touch the DOM, so
+// a plain literal is enough to build and assert on a whole spec under node.
+const T = { ink: "INK", muted: "MUTED", rule: "RULE", raise: "RAISE", accent: "ACCENT", bad: "BAD" };
+const at = (points, x) => points.reduce((p, q) => (Math.abs(q.x - x) < Math.abs(p.x - x) ? q : p));
 const near = (a, b, tol = 1e-6) => assert.ok(Math.abs(a - b) <= tol, `${a} != ${b}`);
 
 test("niceTicks starts at 0, ascends, and covers the max", () => {
@@ -179,4 +183,133 @@ test("axisMax survives degenerate peaks", () => {
 
 test("importing chart.js touches no DOM — it must load under plain node", () => {
   assert.equal(typeof globalThis.document, "undefined");
+});
+
+/* ── interest: ordinary income that doesn't retire, so it is in BOTH curves ──
+ *
+ * The bug this section exists to prevent: the charts were written before the
+ * interest slider landed on main, so every calc() in here defaulted `other` to
+ * 0 and the sweep silently ignored the slider while the readouts above it
+ * moved. Each test below fails if any one call site loses its `other`. */
+
+test("interest of zero leaves every chart helper exactly as it was", () => {
+  assert.deepEqual(wageBreaks(M, 0), wageBreaks(M));
+  for (const base of [0, 300_000])
+    for (const slice of [50_000, 100_000]) {
+      const f0 = penaltyFn(base, slice, M, 0), f = penaltyFn(base, slice, M);
+      for (const w of [0, 250_000, 500_000]) near(f0(w), f(w));
+      assert.deepEqual(cliffFacts(base, slice, M, 0), cliffFacts(base, slice, M));
+    }
+});
+
+test("gainsBreaks keys off the whole ordinary pool, not the wages alone", () => {
+  // $100K of wages and $100K of interest put the gains in exactly the same place,
+  // so they must produce exactly the same kinks.
+  assert.deepEqual(gainsBreaks(100_000, M), gainsBreaks(0 + 100_000, M));
+  // and the kinks are real: sampling either side of the 0%-band break shows the slope change
+  const [, band0] = gainsBreaks(150_000, M);
+  const eps = 1;
+  const slope = x => calc(0, x + eps, M, 150_000).total - calc(0, x, M, 150_000).total;
+  assert.ok(slope(band0 + eps) > slope(band0 - 2 * eps), "no slope change at the 0% band break");
+});
+
+test("wageBreaks shift left by the interest — it already spent that much pool", () => {
+  for (const other of [0, 50_000, 200_000]) {
+    const shifted = wageBreaks(M, other);
+    wageBreaks(M).forEach((b, i) => near(shifted[i], b - other));
+    for (const b of shifted) assert.ok(Number.isFinite(b), `bad break ${b}`);
+  }
+});
+
+test("penaltyFn with interest is exactly tax.js timingPenalty with interest", () => {
+  for (const other of [0, 60_000, 250_000, 600_000])
+    for (const base of [0, 300_000, 700_000])
+      for (const slice of [25_000, 100_000]) {
+        const f = penaltyFn(base, slice, M, other);
+        for (const w of [0, 100_000, 250_000, 400_000, 800_000])
+          near(f(w), timingPenalty(w, base, slice, M, other), 1e-6);
+      }
+});
+
+test("interest moves the cliff left and eventually flattens it away", () => {
+  const foot = i => cliffFacts(300_000, 100_000, M, i).foot;
+  // the README's cliff sits at ~$250K of wages with no interest; each dollar of
+  // interest is a dollar of wages already spent, so the edge arrives that much sooner
+  near(foot(0) - foot(50_000), 50_000, 2_500);
+  near(foot(0) - foot(200_000), 200_000, 2_500);
+  let prev = Infinity;
+  for (const i of [0, 50_000, 100_000, 200_000]) {
+    assert.ok(foot(i) < prev, `cliff foot did not move left at interest ${i}`);
+    prev = foot(i);
+  }
+  // enough interest and there is no cliff left for the wages to push you off
+  assert.equal(foot(400_000), null);
+  assert.equal(cliffFacts(300_000, 100_000, M, 400_000).plateau, 0);
+});
+
+test("the sweep chart plots interest in BOTH curves — the slider must move them", () => {
+  const spec = (i) => gainsSweepSpec(300_000, 300_000, 100_000, M, i, T);
+  const a = spec(0), b = spec(150_000);
+  for (const s of [0, 1]) {
+    const x = a.series[s].points.at(-1).x;
+    assert.ok(b.series[s].points.at(-1).y > a.series[s].points.at(-1).y,
+      `series ${s} ignored the interest at ${x}`);
+  }
+  // and the y-values ARE calc() with the interest, on both curves
+  for (const x of [0, 500_000, 1_000_000])
+    for (const [s, w] of [[0, 0], [1, 300_000]]) {
+      const p = at(b.series[s].points, x);
+      near(p.y, calc(w, p.x, M, 150_000).total, 1e-6);
+    }
+});
+
+test("the sweep band stays the wage-caused delta once interest is in both columns", () => {
+  // This is the claim the caption makes: band == "extra CG tax caused by working".
+  for (const i of [0, 100_000, 300_000])
+    for (const wage of [150_000, 400_000]) {
+      const s = gainsSweepSpec(wage, 300_000, 100_000, M, i, T);
+      const total = 400_000;
+      const want = calc(wage, total, M, i).total - calc(0, total, M, i).total;
+      if (s.gapLabel) {
+        near(s.gapLabel.hi - s.gapLabel.lo, want, 1e-6);
+        near(s.gapLabel.lo, calc(0, total, M, i).total, 1e-6);
+      }
+      const hover = Object.fromEntries(s.hoverFmt(total).map(r => [r[0], r[1]]));
+      assert.equal(hover["wages cost"], "+$" + Math.round(want).toLocaleString());
+    }
+});
+
+test("the no-wage curve is renamed once it is carrying interest", () => {
+  // "no-wage year" reads as an empty year; with interest in it that is a lie.
+  assert.equal(gainsSweepSpec(300_000, 300_000, 0, M, 0, T).series[0].label, "no-wage year");
+  assert.equal(gainsSweepSpec(300_000, 300_000, 0, M, 90_000, T).series[0].label, "interest only");
+  assert.equal(gainsSweepSpec(0, 300_000, 0, M, 90_000, T).series[0].label, "interest only");
+  assert.ok(gainsSweepSpec(300_000, 300_000, 0, M, 90_000, T).aria.includes("$90,000 of interest"));
+  assert.ok(gainsSweepSpec(0, 300_000, 0, M, 90_000, T).aria.includes("$90,000 of interest"));
+  const rows = gainsSweepSpec(300_000, 300_000, 0, M, 90_000, T).hoverFmt(400_000).map(r => r[0]);
+  assert.ok(rows.includes("interest only"), rows.join("/"));
+});
+
+test("the cliff chart takes the interest too, and says so", () => {
+  const spec = i => penaltyCliffSpec(400_000, 300_000, 100_000, M, i, T, false);
+  const a = spec(0), b = spec(150_000);
+  const pen = i => timingPenalty(400_000, 300_000, 100_000, M, i);
+  near(at(a.series[0].points, 400_000).y, pen(0), 1e-6);
+  near(at(b.series[0].points, 400_000).y, pen(150_000), 1e-6);
+  // at a wage still on the flat, the interest is what tips you over the edge:
+  // it spends the cheap brackets the wages would otherwise have had to reach for
+  const onFace = i => at(penaltyCliffSpec(150_000, 300_000, 100_000, M, i, T, false).series[0].points, 150_000).y;
+  assert.equal(onFace(0), 0);
+  assert.ok(onFace(150_000) > 0, "interest should have pulled the cliff under a $150K wage");
+  assert.ok(b.aria.includes("$150,000 of interest"), b.aria);
+  assert.ok(!a.aria.includes("interest"), a.aria);
+});
+
+test("the spec builders take `other` before the token bag — no silent arg slip", () => {
+  // A call left on the old signature would pass tokens() where `other` goes and
+  // colour the curves `undefined`. Pin the order by checking the colours landed.
+  const s = gainsSweepSpec(300_000, 300_000, 100_000, M, 50_000, T);
+  assert.equal(s.series[0].color, T.accent);
+  assert.equal(s.series[1].color, T.bad);
+  assert.equal(penaltyCliffSpec(300_000, 300_000, 100_000, M, 50_000, T, false).series[0].color, T.bad);
 });

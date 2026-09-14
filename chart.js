@@ -49,26 +49,31 @@ export function sampleCurve(fn, x0, x1, n = 320, breaks = []) {
   return xs.map(x => ({ x, y: fn(x) }));
 }
 
-/** Gains-space kinks at a given wage: where the deduction runs out, where the
- *  federal 0%/15%/20% boundaries land, NIIT onset, and the two WA thresholds. */
-export function gainsBreaks(wage, k) {
+/** Gains-space kinks at a given level of ordinary income: where the deduction
+ *  runs out, where the federal 0%/15%/20% boundaries land, NIIT onset, and the
+ *  two WA thresholds. `ord` is the whole ordinary pool — wages plus interest —
+ *  because calc() stacks gains above that pool and doesn't care which is which. */
+export function gainsBreaks(ord, k) {
   const dedn = Math.max(0, k.stdded);
-  const ordTaxable = Math.max(0, wage - dedn);
-  const dednLeft = Math.max(0, dedn - wage);
+  const ordTaxable = Math.max(0, ord - dedn);
+  const dednLeft = Math.max(0, dedn - ord);
   return [
     dednLeft,
     dednLeft + Math.max(0, k.ltcg0 - ordTaxable),
     dednLeft + Math.max(0, k.ltcg15 - ordTaxable),
-    k.niit - wage,
+    k.niit - ord,
     k.waExempt,
     k.waExempt + 1_000_000,
   ];
 }
 
-/** Wage-space kinks for the penalty-vs-wages sweep. */
-export function wageBreaks(k) {
+/** Wage-space kinks for the penalty-vs-wages sweep. `other` (interest) already
+ *  occupies that much of the ordinary pool, so every kink arrives that many
+ *  dollars of wages earlier; ones that fall below $0 are simply off the left of
+ *  the domain, and sampleCurve drops them. */
+export function wageBreaks(k, other = 0) {
   const d = Math.max(0, k.stdded);
-  return [d, d + Math.max(0, k.ltcg0), k.niit];
+  return [d, d + Math.max(0, k.ltcg0), k.niit].map(x => x - other);
 }
 
 /** x where a curve first lifts off zero — the foot of the cliff. null if flat. */
@@ -415,16 +420,22 @@ export function createChart(canvas) {
 /* ────────────────────────── the two chart specs ───────────────────────────── */
 
 /** Sweep gains along x; compare total capital-gains tax with and without wages.
- *  The band between the curves is what the wages cost. */
-export function gainsSweepSpec(wage, base, extra, K, t) {
+ *  `other` is interest — ordinary income that doesn't retire — so it sits under
+ *  the gains in BOTH curves and the only difference between them is the wages.
+ *  The band between them is therefore what the wages cost on top of that
+ *  interest, which is the same number the page prints above. */
+export function gainsSweepSpec(wage, base, extra, K, other, t) {
   const total = base + extra;
   const xMax = sweepDomain(total);
-  const work = sampleCurve(x => calc(wage, x, K).total, 0, xMax, 320, gainsBreaks(wage, K));
-  const none = sampleCurve(x => calc(0, x, K).total, 0, xMax, 320, gainsBreaks(0, K));
+  const work = sampleCurve(x => calc(wage, x, K, other).total, 0, xMax, 320, gainsBreaks(wage + other, K));
+  const none = sampleCurve(x => calc(0, x, K, other).total, 0, xMax, 320, gainsBreaks(other, K));
   const yMax = axisMax(Math.max(work[work.length - 1].y, none[none.length - 1].y, 1));
 
-  const gapAt = x => calc(wage, x, K).total - calc(0, x, K).total;
+  const gapAt = x => calc(wage, x, K, other).total - calc(0, x, K, other).total;
   const working = wage > 0;
+  // The lower curve is still the no-wage year; with interest in it, "interest
+  // only" is both shorter and more honest than calling it an empty year.
+  const noneLabel = other > 0 ? "interest only" : "no-wage year";
 
   const markers = [{ x: total, label: "now", strong: true }];
   if (extra > 0) markers.unshift({ x: base, label: "draw" });
@@ -434,28 +445,31 @@ export function gainsSweepSpec(wage, base, extra, K, t) {
     band: working,
     series: working
       ? [
-          { points: none, color: t.accent, label: "no-wage year", above: false },
+          { points: none, color: t.accent, label: noneLabel, above: false },
           { points: work, color: t.bad, dash: [6, 4], label: "working year", above: true },
         ]
-      : [{ points: none, color: t.accent, label: "no-wage year" }],
+      : [{ points: none, color: t.accent, label: noneLabel }],
     fillUnder: !working,
     markers,
     labelAt: working ? xMax * 0.6 : null,
     gapLabel: working && gapAt(total) > 0
-      ? { x: total, lo: calc(0, total, K).total, hi: calc(wage, total, K).total, text: "+" + fullMoney(gapAt(total)) }
+      ? { x: total, lo: calc(0, total, K, other).total, hi: calc(wage, total, K, other).total, text: "+" + fullMoney(gapAt(total)) }
       : null,
     aria: working
-      ? `Capital-gains tax as realized gains rise from $0 to ${axisMoney(xMax)}. At ${fullMoney(total)} realized, `
-        + `a no-wage year costs ${fullMoney(calc(0, total, K).total)} and a working year at ${fullMoney(wage)} of wages `
-        + `costs ${fullMoney(calc(wage, total, K).total)} — a gap of ${fullMoney(gapAt(total))}.`
-      : `Capital-gains tax as realized gains rise from $0 to ${axisMoney(xMax)}, with no wages. `
-        + `At ${fullMoney(total)} realized it costs ${fullMoney(calc(0, total, K).total)}. `
+      ? `Capital-gains tax as realized gains rise from $0 to ${axisMoney(xMax)}`
+        + (other > 0 ? `, with ${fullMoney(other)} of interest in both years` : ``)
+        + `. At ${fullMoney(total)} realized, `
+        + `a no-wage year costs ${fullMoney(calc(0, total, K, other).total)} and a working year at ${fullMoney(wage)} of wages `
+        + `costs ${fullMoney(calc(wage, total, K, other).total)} — a gap of ${fullMoney(gapAt(total))}.`
+      : `Capital-gains tax as realized gains rise from $0 to ${axisMoney(xMax)}, with no wages`
+        + (other > 0 ? ` but ${fullMoney(other)} of interest` : ``)
+        + `. At ${fullMoney(total)} realized it costs ${fullMoney(calc(0, total, K, other).total)}. `
         + `Raise the wages slider to open a gap.`,
     xFmt: axisMoney,
     yFmt: axisMoney,
     hoverFmt: x => {
-      const a = calc(0, x, K).total, b = calc(wage, x, K).total;
-      const rows = [["realized", fullMoney(x)], ["no-wage yr", fullMoney(a), t.accent]];
+      const a = calc(0, x, K, other).total, b = calc(wage, x, K, other).total;
+      const rows = [["realized", fullMoney(x)], [other > 0 ? "interest only" : "no-wage yr", fullMoney(a), t.accent]];
       if (working) rows.push(["working yr", fullMoney(b), t.bad], ["wages cost", "+" + fullMoney(b - a), t.bad]);
       return rows;
     },
@@ -463,24 +477,29 @@ export function gainsSweepSpec(wage, base, extra, K, t) {
 }
 
 /** timingPenalty from tax.js, curried on wages so it can be swept. Identical
- *  arithmetic — the no-wage leg is hoisted because it doesn't vary with w. */
-export function penaltyFn(base, slice, K) {
-  const later = calc(0, base + slice, K).total - calc(0, base, K).total;
-  return w => calc(w, base + slice, K).total - calc(w, base, K).total - later;
+ *  arithmetic — the no-wage leg is hoisted because it doesn't vary with w. The
+ *  interest `other` is in both legs, so it never registers as a penalty; what it
+ *  does is spend the cheap brackets before the wages reach them, which walks the
+ *  cliff edge down to a lower wage — and enough of it flattens the penalty away
+ *  entirely, because then the no-wage year has no cheap brackets left either. */
+export function penaltyFn(base, slice, K, other = 0) {
+  const later = calc(0, base + slice, K, other).total - calc(0, base, K, other).total;
+  return w => calc(w, base + slice, K, other).total - calc(w, base, K, other).total - later;
 }
 
-/** Where the cliff starts and where it tops out, for captions and the axis. */
-export function cliffFacts(base, slice, K, xMax = 800_000) {
-  const points = sampleCurve(penaltyFn(base, slice, K), 0, xMax, 320, wageBreaks(K));
+/** Where the cliff starts and where it tops out, for captions and the axis.
+ *  `other` sits before `xMax` because it's part of the model, not the framing. */
+export function cliffFacts(base, slice, K, other = 0, xMax = 800_000) {
+  const points = sampleCurve(penaltyFn(base, slice, K, other), 0, xMax, 320, wageBreaks(K, other));
   return { foot: firstRise(points), plateau: Math.max(...points.map(p => p.y), 0), points };
 }
 
 /** Sweep wages along x; y is the timing penalty on the current extra slice.
  *  This is the chart where the cliff is literally visible. */
-export function penaltyCliffSpec(wage, base, slice, K, t, preview) {
+export function penaltyCliffSpec(wage, base, slice, K, other, t, preview) {
   const xMax = 800_000;
-  const pen = penaltyFn(base, slice, K);
-  const { foot: rise, plateau: top, points: pts } = cliffFacts(base, slice, K, xMax);
+  const pen = penaltyFn(base, slice, K, other);
+  const { foot: rise, plateau: top, points: pts } = cliffFacts(base, slice, K, other, xMax);
   const yMax = axisMax(Math.max(top, 1));
 
   return {
@@ -496,7 +515,12 @@ export function penaltyCliffSpec(wage, base, slice, K, t, preview) {
       + (rise == null
           ? "It stays at $0 across the whole wage range."
           : `It is $0 up to about ${axisMoney(rise)}, then rises and flattens at ${fullMoney(top)}.`)
-      + ` At the current ${fullMoney(wage)} of wages it is ${fullMoney(pen(wage))}.`,
+      + ` At the current ${fullMoney(wage)} of wages it is ${fullMoney(pen(wage))}.`
+      + (other > 0
+          ? ` The ${fullMoney(other)} of interest is in both years, so it never registers as a penalty itself — `
+            + `it spends the cheap brackets before the wages get to them`
+            + (rise == null ? `.` : `, which is why the edge sits at a lower wage than it would on wages alone.`)
+          : ``),
     xFmt: axisMoney,
     yFmt: axisMoney,
     hoverFmt: x => [["wages", fullMoney(x)], ["penalty", fullMoney(pen(x)), t.bad]],

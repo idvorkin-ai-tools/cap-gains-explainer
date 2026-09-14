@@ -147,8 +147,7 @@
 
 <h2>The shape of it</h2>
 <div class="card">
-  <p class="hint" style="margin:0 0 .7rem">Capital-gains tax as you realize more and more, swept from $0. One curve for a
-    working year at your current wages, one for a no-wage year — the band between them is what the wages cost.</p>
+  <p class="hint" style="margin:0 0 .7rem" id="sweepIntro"></p>
   <canvas class="chart" id="sweep" role="img" aria-label="Swept capital-gains tax comparison"></canvas>
   <div class="legend" id="sweepLegend"></div>
   <p class="chartcap" id="sweepCap"></p>
@@ -165,7 +164,7 @@
   <div class="details-body">
     <p class="hint">The first chart, as a table — same sweep, nine evenly spaced realizations.</p>
     <div class="scroll"><table>
-      <thead><tr><th>Realized</th><th>No-wage year</th><th>Working year</th><th>Wages cost</th></tr></thead>
+      <thead><tr><th>Realized</th><th id="sweepThNone">No-wage year</th><th>Working year</th><th>Wages cost</th></tr></thead>
       <tbody id="sweepRows"></tbody>
     </table></div>
   </div>
@@ -385,24 +384,36 @@ function render(){
       </tbody></table></div>
     <p class="hint" style="margin:.6rem 0 0">You keep <b>${money(ltcg-A.total)}</b> of ${money(ltcg)} realized${wage>0||interest>0?`, before any income tax on the ${[wage>0?"wages":null,interest>0?"interest":null].filter(Boolean).join(" or ")}`:""}.${wage>0&&interest>0?` The two memo lines each price one input with the other left where it is, so they don't add up.`:""}</p>`;
 
-  renderCharts({ wage, base, extra, K, delta: d, penalty });
+  renderCharts({ wage, interest, base, extra, K, delta: d, penalty });
 }
 
 const sweepChart = createChart($("sweep"));
 const cliffChart = createChart($("cliff"));
 const PREVIEW_SLICE = 100000;   // the README's reference slice, shown before you set your own
 
-function renderCharts({wage, base, extra, K, delta, penalty}){
+function renderCharts({wage, interest, base, extra, K, delta, penalty}){
   const total = base + extra, working = wage > 0;
+  // The interest is in BOTH curves, so it moves them together rather than apart —
+  // if anything it narrows the band, having already spent the cheap brackets the
+  // wages would have taken. Name it in the legend anyway, or the lower curve reads
+  // as an empty year and the reader wonders why it isn't sitting at $0.
+  const noWage = interest > 0 ? `No-wage year — ${money(interest)} of interest` : `No-wage year`;
 
   // Charts take a builder, not a spec: a theme flip re-reads the CSS tokens.
-  sweepChart.update(() => gainsSweepSpec(wage, base, extra, K, tokens()));
+  sweepChart.update(() => gainsSweepSpec(wage, base, extra, K, interest, tokens()));
+
+  $("sweepIntro").innerHTML = `Capital-gains tax as you realize more and more, swept from $0. One curve for a
+    working year at your current wages, one for a no-wage year — the band between them is what the wages cost.`
+    + (interest > 0
+        ? ` Your ${money(interest)} of interest is in <em>both</em> curves — it lifts them together rather than
+            opening a gap, because it is the one income that doesn't retire.`
+        : ``);
 
   $("sweepLegend").innerHTML = working
-    ? `<span><span class="sw" style="background:var(--accent)"></span>No-wage year</span>
-       <span><span class="sw dash"></span>Working year — ${money(wage)} of wages</span>
+    ? `<span><span class="sw" style="background:var(--accent)"></span>${noWage}</span>
+       <span><span class="sw dash"></span>Working year — ${money(wage)} of wages${interest>0?` and the same interest`:``}</span>
        <span><span class="sw band"></span>What the wages cost</span>`
-    : `<span><span class="sw" style="background:var(--accent)"></span>No-wage year</span>`;
+    : `<span><span class="sw" style="background:var(--accent)"></span>${noWage}</span>`;
 
   $("sweepCap").innerHTML = !working
     ? `Wages are at <b>$0</b>, so there is only one curve. Raise the wages slider and a second curve lifts away from it — the gap is the damage.`
@@ -414,21 +425,29 @@ function renderCharts({wage, base, extra, K, delta, penalty}){
   // With no extra sale the penalty is genuinely $0 at every wage, which makes a
   // dead chart. Show the README's reference slice instead, flagged as illustrative.
   const preview = extra <= 0, slice = preview ? PREVIEW_SLICE : extra;
-  cliffChart.update(() => penaltyCliffSpec(wage, base, slice, K, tokens(), preview));
+  cliffChart.update(() => penaltyCliffSpec(wage, base, slice, K, interest, tokens(), preview));
 
-  const { foot, plateau } = cliffFacts(base, slice, K);
+  const { foot, plateau } = cliffFacts(base, slice, K, interest);
   $("cliffIntro").innerHTML = `What that ${money(slice)} slice costs you at every wage level`
     + (preview ? ` — <em>illustrative, until you set an extra sale above</em>` : ``) + `.`;
-  $("cliffCap").innerHTML = foot == null
+  $("cliffCap").innerHTML = (foot == null
     ? `Flat at <b>$0</b> the whole way: at a ${money(base)} draw, wages never push this slice into a higher bracket.`
     : `A cliff, not a slope — <b>$0</b> until about <b>${money(foot)}</b> of wages, then it appears and flattens out at
-       <b>${money(plateau)}</b>. Past the top of the cliff, earning more costs your gains nothing extra.`;
+       <b>${money(plateau)}</b>. Past the top of the cliff, earning more costs your gains nothing extra.`)
+    + (interest > 0
+        ? ` Your ${money(interest)} of interest is in both years, so it never shows up as a penalty itself — it spends
+            the cheap brackets before the wages get to them`
+          + (foot == null
+              ? `, and with none left in the no-wage year either, waiting saves nothing on this slice.`
+              : `, which is why the edge sits at a lower wage than it would on wages alone.`)
+        : ``);
 
   // Same sweep as a table, for screen readers and anyone who wants the numbers.
   const xMax = sweepDomain(total);
+  $("sweepThNone").textContent = interest > 0 ? "No-wage year — interest only" : "No-wage year";
   $("sweepRows").innerHTML = Array.from({length: 9}, (_, i) => {
     const x = (xMax * i) / 8;
-    const b = calc(0, x, K).total, a = calc(wage, x, K).total, g = a - b;
+    const b = calc(0, x, K, interest).total, a = calc(wage, x, K, interest).total, g = a - b;
     return `<tr><td>${money(x)}</td><td>${money(b)}</td><td>${money(a)}</td>
       <td class="${g > 0 ? "up" : "zero"}">${g > 0 ? "+" + money(g) : "—"}</td></tr>`;
   }).join("");
