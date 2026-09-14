@@ -163,7 +163,7 @@
 <details>
   <summary>The swept numbers</summary>
   <div class="details-body">
-    <p class="hint">The first chart, as a table — same sweep, nine evenly spaced realizations.</p>
+    <p class="hint">The first chart as a table — nine evenly spaced realizations.</p>
     <div class="scroll"><table>
       <thead><tr><th>Realized</th><th id="sweepThNone">No-wage year</th><th>Working year</th><th>Wages cost</th></tr></thead>
       <tbody id="sweepRows"></tbody>
@@ -189,7 +189,7 @@
     <tbody id="rows"></tbody>
   </table>
 </div>
-<p class="hint" style="margin-top:.5rem">Washington's capital-gains tax keys off the realized gain alone, so neither wages nor interest ever move it. All of the damage is federal. The <em>without work</em> column still carries your interest — only the wages go away.</p>
+<p class="hint" style="margin-top:.5rem">Washington's capital-gains tax keys off the realized gain alone, so neither wages nor interest ever move it; all of the damage is federal.</p>
 
 <h2>Where the gains sit</h2>
 <div class="card">
@@ -305,10 +305,11 @@ function render(){
     $("xPen").innerHTML = penalty > 0
       ? `${money(penalty)} <span class="pctTag">${pct(penalty/extra)} of the sale</span>`
       : money(penalty);
-    const bothYears = interest > 0 ? ` Both years carry the ${money(interest)} of interest.` : "";
-    $("xPenNote").innerHTML = (penalty > 0
-      ? `Waiting for a no-wage year saves <b>${money(penalty)}</b> on this ${money(extra)} sale — ${pct(xCostNow/extra)} now vs ${pct(xCostLtr/extra)} later.`
-      : `No penalty at this wage level. The slice costs <b>${pct(xCostNow/extra)}</b> either way, so waiting buys nothing on this sale.`) + bothYears;
+    // The tile prints the figure and its share of the sale; the pair below prints the
+    // two rates it is the gap between. The note restates neither — it names what it is.
+    $("xPenNote").textContent = penalty > 0
+      ? `Pure timing — the gap between the two rates below.`
+      : `No penalty at this wage level: the two rates below match, so waiting buys nothing on this sale.`;
     $("xPair").innerHTML = `
       <div class="cell"><div class="k">Sell now — working</div><div class="v">${money(xCostNow)}</div>
         <div class="n">${pct(xCostNow/extra)}, net ${money(extra-xCostNow)}</div></div>
@@ -325,9 +326,8 @@ function render(){
   const rateB = ltcg ? B.total/ltcg : 0, rateA = ltcg ? A.total/ltcg : 0;
 
   $("delta").textContent = money(d);
-  $("deltaNote").innerHTML = wage > 0
-    ? `<b>${((rateA-rateB)*100).toFixed(1)}%</b> of your realized gains, eaten by working — the gains rate goes ${pct(rateB)} → ${pct(rateA)}.`
-    : "Move the wages slider.";
+  // Both rates and the point spread are in the three cells below; don't print them twice.
+  $("deltaNote").textContent = wage > 0 ? "The before-and-after rates are below." : "Move the wages slider.";
 
   $("pair").innerHTML = `
     <div class="cell"><div class="k">Gains rate without work${interest>0?", interest only":""}</div><div class="v">${pct(rateB)}</div>
@@ -361,12 +361,13 @@ function render(){
   const fedDelta = A.fedLtcg - B.fedLtcg;
   const lost = B.b0 - A.b0;
   const iLost = N.b0 - B.b0;                      // 0% band the interest took, in both years
+  // The size of the federal jump is the Change cell in the table above — say how, not how much.
   $("displaced").innerHTML = fedDelta > 0
     ? (lost > 0
-      ? `Working raised your federal LTCG bill by <b>${money(fedDelta)}</b> — two effects at once: <b>${money(lost)}</b> pushed out of the 0% bracket, and the standard deduction reallocated from your gains to your wages.`
-      : `Working raised your federal LTCG bill by <b>${money(fedDelta)}</b> — the 0% bracket was already gone before the wages arrived${interest>0?`, spent by the ${money(interest)} of interest`:""}, so this is gains pushed from 15% up to 20% and the standard deduction reallocated to your wages.`)
+      ? `Working does it two ways: <b>${money(lost)}</b> pushed out of the 0% bracket, and the standard deduction reallocated from your gains to your wages.`
+      : `The 0% bracket was already gone before the wages arrived${interest>0?`, spent by the interest`:""}, so this is gains pushed from 15% up to 20% and the standard deduction reallocated to your wages.`)
     : iLost > 0
-      ? `Nothing displaced by working — but the ${money(interest)} of interest has already pushed <b>${money(iLost)}</b> out of the 0% bracket, and it does that in a no-wage year too.`
+      ? `Nothing displaced by working — but the interest has already pushed <b>${money(iLost)}</b> out of the 0% bracket, in a no-wage year too.`
       : `Nothing displaced yet.`;
 
   // Summary — wages shown as a memo line, not a third addend
@@ -385,16 +386,16 @@ function render(){
         ${interest>0?`<tr class="memo"><td>of which caused by ${money(interest)} of interest</td><td>—</td>
             <td>${money(iCost)}</td><td>${pct(iCost/interest)} of the interest</td></tr>`:""}
       </tbody></table></div>
-    <p class="hint" style="margin:.6rem 0 0">You keep <b>${money(ltcg-A.total)}</b> of ${money(ltcg)} realized${wage>0||interest>0?`, before any income tax on the ${[wage>0?"wages":null,interest>0?"interest":null].filter(Boolean).join(" or ")}`:""}.${wage>0&&interest>0?` The two memo lines each price one input with the other left where it is, so they don't add up.`:""}</p>`;
+    <p class="hint" style="margin:.6rem 0 0">You keep <b>${money(ltcg-A.total)}</b> of it${wage>0||interest>0?`, before any income tax on the ${[wage>0?"wages":null,interest>0?"interest":null].filter(Boolean).join(" or ")}`:""}.${wage>0&&interest>0?` The memo lines each hold the other input fixed, so they don't add up.`:""}</p>`;
 
-  renderCharts({ wage, interest, base, extra, K, delta: d, penalty });
+  renderCharts({ wage, interest, base, extra, K });
 }
 
 const sweepChart = createChart($("sweep"));
 const cliffChart = createChart($("cliff"));
 const PREVIEW_SLICE = 100000;   // the README's reference slice, shown before you set your own
 
-function renderCharts({wage, interest, base, extra, K, delta, penalty}){
+function renderCharts({wage, interest, base, extra, K}){
   const total = base + extra, working = wage > 0;
   // The interest is in BOTH curves, so it moves them together rather than apart —
   // if anything it narrows the band, having already spent the cheap brackets the
@@ -405,12 +406,9 @@ function renderCharts({wage, interest, base, extra, K, delta, penalty}){
   // Charts take a builder, not a spec: a theme flip re-reads the CSS tokens.
   sweepChart.update(() => gainsSweepSpec(wage, base, extra, K, interest, tokens()));
 
-  $("sweepIntro").innerHTML = `Capital-gains tax as you realize more and more, swept from $0. One curve for a
-    working year at your current wages, one for a no-wage year — the band between them is what the wages cost.`
-    + (interest > 0
-        ? ` Your ${money(interest)} of interest is in <em>both</em> curves — it lifts them together rather than
-            opening a gap, because it is the one income that doesn't retire.`
-        : ``);
+  // The legend names both curves, the interest in each and the band; the caption
+  // maps the band onto the tiles. All this line owes the reader is the x-axis.
+  $("sweepIntro").textContent = `Capital-gains tax as you realize more and more, swept from $0.`;
 
   $("sweepLegend").innerHTML = working
     ? `<span><span class="sw" style="background:var(--accent)"></span>${noWage}</span>
@@ -418,11 +416,13 @@ function renderCharts({wage, interest, base, extra, K, delta, penalty}){
        <span><span class="sw band"></span>What the wages cost</span>`
     : `<span><span class="sw" style="background:var(--accent)"></span>${noWage}</span>`;
 
+  // The band is the “caused by working” tile and its widening is the penalty tile,
+  // so this maps the chart onto them by name rather than reprinting either figure.
   $("sweepCap").innerHTML = !working
-    ? `Wages are at <b>$0</b>, so there is only one curve. Raise the wages slider and a second curve lifts away from it — the gap is the damage.`
-    : `At ${money(total)} realized the band is <b>${money(delta)}</b> — the same number as “extra capital-gains tax caused by working” below.`
+    ? `Wages are at <b>$0</b>, so there is only one curve. Raise the wages slider and a second lifts away from it.`
+    : `The band at “now” is the wages cost tiled below.`
       + (extra > 0
-          ? ` It widens by <b>${money(penalty)}</b> between your ${money(base)} draw and ${money(total)}, and <em>that widening is the timing penalty</em>.`
+          ? ` How far it widens between “draw” and “now” is <em>the penalty tiled above</em>.`
           : ` Sell something extra and the band's widening across that slice is the penalty.`);
 
   // With no extra sale the penalty is genuinely $0 at every wage, which makes a
@@ -433,16 +433,17 @@ function renderCharts({wage, interest, base, extra, K, delta, penalty}){
   const { foot, plateau } = cliffFacts(base, slice, K, interest);
   $("cliffIntro").innerHTML = `What that ${money(slice)} slice costs you at every wage level`
     + (preview ? ` — <em>illustrative, until you set an extra sale above</em>` : ``) + `.`;
+  // The chart's aria string spells the interest's role out in full for screen readers.
+  // In prose keep only the part a sighted reader can't read off the curve: why the
+  // edge sits where it does. That the interest rides in both years is said up top.
   $("cliffCap").innerHTML = (foot == null
     ? `Flat at <b>$0</b> the whole way: at a ${money(base)} draw, wages never push this slice into a higher bracket.`
     : `A cliff, not a slope — <b>$0</b> until about <b>${money(foot)}</b> of wages, then it appears and flattens out at
-       <b>${money(plateau)}</b>. Past the top of the cliff, earning more costs your gains nothing extra.`)
+       <b>${money(plateau)}</b>. Past the top, earning more costs your gains nothing extra.`)
     + (interest > 0
-        ? ` Your ${money(interest)} of interest is in both years, so it never shows up as a penalty itself — it spends
-            the cheap brackets before the wages get to them`
-          + (foot == null
-              ? `, and with none left in the no-wage year either, waiting saves nothing on this slice.`
-              : `, which is why the edge sits at a lower wage than it would on wages alone.`)
+        ? (foot == null
+            ? ` The interest has already spent the cheap brackets in the no-wage year too, so waiting saves nothing on this slice.`
+            : ` Your interest walks that edge down — it spends the cheap brackets before the wages reach them.`)
         : ``);
 
   // Same sweep as a table, for screen readers and anyone who wants the numbers.
