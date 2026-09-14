@@ -54,6 +54,7 @@
   .headline .k{font-size:.73rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
   .headline .v{font-family:var(--mono);font-size:2.4rem;font-weight:700;color:var(--bad);
                font-variant-numeric:tabular-nums;line-height:1.1;margin:.15rem 0}
+  .headline .v .pctTag{font-size:.45em;font-weight:500;color:var(--muted,#6b6b6b);margin-left:.4em;white-space:nowrap}
   .headline .n{font-size:.9rem;color:var(--ink)}
 
   .pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:1px;background:var(--rule);
@@ -301,7 +302,9 @@ function render(){
 
   $("extraBox").hidden = extra <= 0;
   if (extra > 0){
-    $("xPen").textContent = money(penalty);
+    $("xPen").innerHTML = penalty > 0
+      ? `${money(penalty)} <span class="pctTag">${pct(penalty/extra)} of the sale</span>`
+      : money(penalty);
     const bothYears = interest > 0 ? ` Both years carry the ${money(interest)} of interest.` : "";
     $("xPenNote").innerHTML = (penalty > 0
       ? `Waiting for a no-wage year saves <b>${money(penalty)}</b> on this ${money(extra)} sale — ${pct(xCostNow/extra)} now vs ${pct(xCostLtr/extra)} later.`
