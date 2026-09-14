@@ -9,6 +9,13 @@ Models **only** capital-gains tax — federal LTCG, NIIT, and Washington. Income
 tax and FICA on the wages are deliberately out of scope, because the question is
 what wages do to *gains*.
 
+Three income inputs: **wages**, which exist only in a working year; **interest**,
+which keeps arriving in *every* year and so sits in both columns of every
+comparison; and the gains themselves. Interest is taxed here exactly as wages are
+— it stacks under the gains, eats the standard deduction, and lifts NIIT MAGI — so
+the tax on the interest *itself* (ordinary income tax, and the 3.8% it owes under
+§1411) is out of scope for the same reason income tax on the wages is.
+
 ## The finding
 
 Wage income stacks *underneath* long-term capital gains, so it doesn't only pay

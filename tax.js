@@ -22,16 +22,25 @@ export const SOURCES = {
   waRates:  "RCW 82.87.040 — https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.040",
   waPerInd: "RCW 82.87.060 — per individual, NOT doubled for MFJ",
   stacking: "IRC §1(h)(1) — https://www.law.cornell.edu/uscode/text/26/1",
+  interest: "IRC §61(a)(4) — interest is ordinary income, so it stacks under LTCG exactly as wages do",
+  niiScope: "IRC §1411(c)(1)(A)(i) — interest is itself NII; the 3.8% on the interest ITSELF is out of scope here (a tax on the interest, not on the gains), but the interest still lifts MAGI",
 };
 
 /**
- * @param {number} wages   W-2 wages
+ * @param {number} wages   W-2 wages — present only in a working year
  * @param {number} ltcg    long-term capital gains realized
  * @param {object} k       constants: {stdded, ltcg0, ltcg15, niit, niitRate, waExempt}
+ * @param {number} other   interest and other ordinary income — present in EVERY year,
+ *                         working or not. Taxed identically to wages here: it stacks
+ *                         underneath the gains, eats the standard deduction, and counts
+ *                         toward NIIT MAGI. Only `sliceCost`/`timingPenalty` care which
+ *                         is which, because only wages disappear in a no-wage year.
  */
-export function calc(wages, ltcg, k) {
+export function calc(wages, ltcg, k, other = 0) {
   wages = Math.max(0, wages);
   ltcg  = Math.max(0, ltcg);
+  other = Math.max(0, other);
+  const ord = wages + other;                      // all ordinary income, one pool
 
   const dedn = Math.max(0, k.stdded);
   const c0   = Math.max(0, k.ltcg0);
@@ -39,8 +48,8 @@ export function calc(wages, ltcg, k) {
 
   // IRC §1(h)(1): deduction offsets ordinary income first; the remainder
   // reduces the preferentially-taxed amount. LTCG then stacks ABOVE ordinary.
-  const ordTaxable  = Math.max(0, wages - dedn);
-  const dednLeft    = Math.max(0, dedn - wages);
+  const ordTaxable  = Math.max(0, ord - dedn);
+  const dednLeft    = Math.max(0, dedn - ord);
   const ltcgTaxable = Math.max(0, ltcg - dednLeft);
 
   const start = ordTaxable, end = ordTaxable + ltcgTaxable;
@@ -49,8 +58,12 @@ export function calc(wages, ltcg, k) {
   const fedLtcg = b15 * 0.15 + b20 * 0.20;
 
   // NIIT: lesser of net investment income, or MAGI over the threshold.
-  // MAGI is pre-standard-deduction, so the deduction does not reduce it.
-  const nii = Math.max(0, Math.min(ltcg, wages + ltcg - k.niit)) * (k.niitRate / 100);
+  // MAGI is pre-standard-deduction, so the deduction does not reduce it, and all
+  // ordinary income lifts it. NII is held to the GAINS: interest is itself net
+  // investment income under §1411(c)(1)(A)(i), but the 3.8% it owes on its own
+  // account is a tax on the interest, not on the gains — out of scope here for the
+  // same reason income tax on the wages is.
+  const nii = Math.max(0, Math.min(ltcg, ord + ltcg - k.niit)) * (k.niitRate / 100);
 
   // WA keys off GROSS realized gain; the federal deduction is irrelevant to it.
   const ex   = Math.max(0, k.waExempt);
@@ -62,14 +75,16 @@ export function calc(wages, ltcg, k) {
   return { b0, b15, b20, ltcgTaxable, fedLtcg, nii, wa, total: fedLtcg + nii + wa };
 }
 
-/** Cost of realizing `extra` on top of `base`, at a given wage level. */
-export function sliceCost(wages, base, extra, k) {
-  return calc(wages, base + extra, k).total - calc(wages, base, k).total;
+/** Cost of realizing `extra` on top of `base`, at a given wage level, with `other`
+ *  ordinary income (interest) alongside. */
+export function sliceCost(wages, base, extra, k, other = 0) {
+  return calc(wages, base + extra, k, other).total - calc(wages, base, k, other).total;
 }
 
-/** What you lose by selling `extra` in a working year instead of a no-wage year. */
-export function timingPenalty(wages, base, extra, k) {
-  return sliceCost(wages, base, extra, k) - sliceCost(0, base, extra, k);
+/** What you lose by selling `extra` in a working year instead of a no-wage year.
+ *  Only the wages go away in the no-wage year — `other` is there in both. */
+export function timingPenalty(wages, base, extra, k, other = 0) {
+  return sliceCost(wages, base, extra, k, other) - sliceCost(0, base, extra, k, other);
 }
 
 export const presets = status => ({ ...CONSTANTS[status], ...CONSTANTS.shared });

@@ -113,13 +113,17 @@
 
 <header>
   <h1>Sell now or sell later?</h1>
-  <p class="sub">You need to sell some stock to live on. Selling <em>more</em> than that is a timing choice — do it in a year you're working, or wait for one you're not. This prices that choice. Income tax and FICA on the wages are deliberately excluded; this is only what happens to your <em>capital gains</em>.</p>
+  <p class="sub">You need to sell some stock to live on. Selling <em>more</em> than that is a timing choice — do it in a year you're working, or wait for one you're not. This prices that choice. A no-wage year isn't an empty one: interest keeps arriving either way, so it stacks under your gains in <em>both</em> columns. Income tax and FICA on the wages are deliberately excluded; this is only what happens to your <em>capital gains</em>.</p>
 </header>
 
 <div class="card">
   <div class="slider-head"><span class="val" id="wLbl">$0</span><span class="hint">W-2 wages</span></div>
   <input type="range" id="wage" min="0" max="800000" step="20000" value="0" aria-label="Work income">
   <div class="track" id="wTicks"></div>
+
+  <div class="slider-head" style="margin-top:.6rem"><span class="val" id="iLbl">$0</span><span class="hint">interest — in every year</span></div>
+  <input type="range" id="interest" min="0" max="300000" step="5000" value="0" aria-label="Interest income, all years">
+  <div class="track" id="iTicks"></div>
 
   <div class="slider-head" style="margin-top:.6rem"><span class="val" id="lLbl">$300,000</span><span class="hint">gains sold to live on</span></div>
   <input type="range" id="ltcg" min="0" max="1500000" step="1000" value="300000" aria-label="Capital gains needed to live">
@@ -185,7 +189,7 @@
     <tbody id="rows"></tbody>
   </table>
 </div>
-<p class="hint" style="margin-top:.5rem">Washington's capital-gains tax keys off the realized gain alone, so wages never move it. All of the damage is federal.</p>
+<p class="hint" style="margin-top:.5rem">Washington's capital-gains tax keys off the realized gain alone, so neither wages nor interest ever move it. All of the damage is federal. The <em>without work</em> column still carries your interest — only the wages go away.</p>
 
 <h2>Where the gains sit</h2>
 <div class="card">
@@ -240,12 +244,15 @@
         <tr><td>WA 7% + 2.9% surcharge over $1M</td><td>not indexed</td><td><a href="https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.040">RCW 82.87.040</a></td><td>2025→</td></tr>
         <tr><td>WA indexing mechanism</td><td>Oct CPI</td><td><a href="https://app.leg.wa.gov/RCW/default.aspx?cite=82.87.150">RCW 82.87.150</a></td><td>all</td></tr>
         <tr><td>LTCG stacks above ordinary income</td><td>—</td><td><a href="https://www.law.cornell.edu/uscode/text/26/1">IRC §1(h)(1)</a></td><td>all</td></tr>
+        <tr><td>Interest is ordinary income, so it stacks under gains exactly as wages do</td><td>—</td><td><a href="https://www.law.cornell.edu/uscode/text/26/61">IRC §61(a)(4)</a></td><td>all</td></tr>
+        <tr><td>Interest is itself net investment income</td><td>3.8%, excluded here</td><td><a href="https://www.law.cornell.edu/uscode/text/26/1411">IRC §1411(c)(1)(A)(i)</a></td><td>all</td></tr>
       </tbody>
     </table></div>
 
     <h2 style="font-size:.95rem;margin:1.4rem 0 .5rem">Deliberately excluded</h2>
     <ul class="hint" style="margin:0;padding-left:1.1rem">
       <li>Income tax and FICA on the wages — this models the gains only.</li>
+      <li>Income tax on the interest, and the 3.8% NIIT the interest owes on its <em>own</em> account under <a href="https://www.law.cornell.edu/uscode/text/26/1411">§1411(c)(1)(A)(i)</a>. Like the wages, the interest is priced here only for what it does to your <em>gains</em>: it lifts NIIT MAGI, eats the standard deduction, and pushes gains out of the 0% bracket.</li>
       <li>Whether WA capital-gains tax reduces the federal amount realized under §164(a). The position is unsettled and circular; excluding it makes this model slightly conservative (~$290 at a $300K draw).</li>
       <li>Itemizing instead of the standard deduction, 401(k)/HSA deferrals, AMT, ACA subsidies, IRMAA, state income tax (none in WA until the 2028 millionaires' tax at $1M).</li>
       <li>Market risk of holding, which is the actual reason not to defer a sale forever.</li>
@@ -274,9 +281,10 @@ function ticks(el, slider, marks){
 }
 
 function render(){
-  const wage = num("wage"), base = num("ltcg"), extra = num("extra");
+  const wage = num("wage"), interest = num("interest"), base = num("ltcg"), extra = num("extra");
   const ltcg = base + extra;
   $("wLbl").textContent = money(wage);
+  $("iLbl").textContent = money(interest);
   $("lLbl").textContent = money(base);
   $("xLbl").textContent = money(extra);
   $("kinkNow").textContent = "currently " + money(num("waExempt") + WA_SURCHARGE_OFFSET);
@@ -284,28 +292,33 @@ function render(){
     ? `Total realized: <b>${money(ltcg)}</b> — ${money(base)} to live on plus ${money(extra)} extra.`
     : `Total realized: <b>${money(base)}</b>.`;
 
+  // Interest is ordinary income that survives retirement, so it goes into EVERY
+  // scenario — the working year and the no-wage year alike. Only the wages drop out.
   const K = kAll();
-  const noExtra  = calc(wage, base, K);
-  const xCostNow = calc(wage, ltcg, K).total - noExtra.total;
-  const xCostLtr = calc(0, ltcg, K).total - calc(0, base, K).total;
+  const noExtra  = calc(wage, base, K, interest);
+  const xCostNow = calc(wage, ltcg, K, interest).total - noExtra.total;
+  const xCostLtr = calc(0, ltcg, K, interest).total - calc(0, base, K, interest).total;
   const penalty  = xCostNow - xCostLtr;
 
   $("extraBox").hidden = extra <= 0;
   if (extra > 0){
     $("xPen").textContent = money(penalty);
-    $("xPenNote").innerHTML = penalty > 0
+    const bothYears = interest > 0 ? ` Both years carry the ${money(interest)} of interest.` : "";
+    $("xPenNote").innerHTML = (penalty > 0
       ? `Waiting for a no-wage year saves <b>${money(penalty)}</b> on this ${money(extra)} sale — ${pct(xCostNow/extra)} now vs ${pct(xCostLtr/extra)} later.`
-      : `No penalty at this wage level. The slice costs <b>${pct(xCostNow/extra)}</b> either way, so waiting buys nothing on this sale.`;
+      : `No penalty at this wage level. The slice costs <b>${pct(xCostNow/extra)}</b> either way, so waiting buys nothing on this sale.`) + bothYears;
     $("xPair").innerHTML = `
       <div class="cell"><div class="k">Sell now — working</div><div class="v">${money(xCostNow)}</div>
         <div class="n">${pct(xCostNow/extra)}, net ${money(extra-xCostNow)}</div></div>
-      <div class="cell"><div class="k">Sell later — no wages</div><div class="v">${money(xCostLtr)}</div>
+      <div class="cell"><div class="k">Sell later — no wages${interest>0?", interest only":""}</div><div class="v">${money(xCostLtr)}</div>
         <div class="n">${pct(xCostLtr/extra)}, net ${money(extra-xCostLtr)}</div></div>
-      <div class="cell"><div class="k">Living draw, no-wage year</div><div class="v">${pct(base?calc(0,base,K).total/base:0)}</div>
+      <div class="cell"><div class="k">Living draw, no-wage year</div><div class="v">${pct(base?calc(0,base,K,interest).total/base:0)}</div>
         <div class="n">${money(base)} realized</div></div>`;
   }
 
-  const A = calc(wage, ltcg, K), B = calc(0, ltcg, K);
+  const A = calc(wage, ltcg, K, interest), B = calc(0, ltcg, K, interest);
+  const N = calc(0, ltcg, K, 0);                  // neither wages nor interest — the bare year
+  const iCost = A.total - calc(wage, ltcg, K, 0).total;   // what the interest costs the gains
   const d = A.total - B.total;
   const rateB = ltcg ? B.total/ltcg : 0, rateA = ltcg ? A.total/ltcg : 0;
 
@@ -315,7 +328,7 @@ function render(){
     : "Move the wages slider.";
 
   $("pair").innerHTML = `
-    <div class="cell"><div class="k">Gains rate without work</div><div class="v">${pct(rateB)}</div>
+    <div class="cell"><div class="k">Gains rate without work${interest>0?", interest only":""}</div><div class="v">${pct(rateB)}</div>
       <div class="n">${money(B.total)} on ${money(ltcg)}</div></div>
     <div class="cell"><div class="k">Gains rate with work</div><div class="v">${pct(rateA)}</div>
       <div class="n">${money(A.total)} on ${money(ltcg)}</div></div>
@@ -340,14 +353,19 @@ function render(){
     return `<div class="bar">${seg(o.b0,"free")}${seg(o.b15,"f15")}${seg(o.b20,"f20")}</div>`;
   };
   $("bars").innerHTML =
-    `<div class="barrow"><span>No work</span>${bar(B)}</div>` +
+    `<div class="barrow"><span>${interest>0?"Interest only":"No work"}</span>${bar(B)}</div>` +
     `<div class="barrow"><span>Working</span>${bar(A)}</div>`;
 
   const fedDelta = A.fedLtcg - B.fedLtcg;
   const lost = B.b0 - A.b0;
+  const iLost = N.b0 - B.b0;                      // 0% band the interest took, in both years
   $("displaced").innerHTML = fedDelta > 0
-    ? `Working raised your federal LTCG bill by <b>${money(fedDelta)}</b> — two effects at once: <b>${money(lost)}</b> pushed out of the 0% bracket, and the standard deduction reallocated from your gains to your wages.`
-    : `Nothing displaced yet.`;
+    ? (lost > 0
+      ? `Working raised your federal LTCG bill by <b>${money(fedDelta)}</b> — two effects at once: <b>${money(lost)}</b> pushed out of the 0% bracket, and the standard deduction reallocated from your gains to your wages.`
+      : `Working raised your federal LTCG bill by <b>${money(fedDelta)}</b> — the 0% bracket was already gone before the wages arrived${interest>0?`, spent by the ${money(interest)} of interest`:""}, so this is gains pushed from 15% up to 20% and the standard deduction reallocated to your wages.`)
+    : iLost > 0
+      ? `Nothing displaced by working — but the ${money(interest)} of interest has already pushed <b>${money(iLost)}</b> out of the 0% bracket, and it does that in a no-wage year too.`
+      : `Nothing displaced yet.`;
 
   // Summary — wages shown as a memo line, not a third addend
   $("summary").innerHTML = `
@@ -362,8 +380,10 @@ function render(){
             <td>${money(A.total)}</td><td>${pct(ltcg?A.total/ltcg:0)}</td></tr>
         ${wage>0?`<tr class="memo"><td>of which caused by ${money(wage)} of wages</td><td>—</td>
             <td>${money(d)}</td><td>${pct(d/wage)} of wages</td></tr>`:""}
+        ${interest>0?`<tr class="memo"><td>of which caused by ${money(interest)} of interest</td><td>—</td>
+            <td>${money(iCost)}</td><td>${pct(iCost/interest)} of the interest</td></tr>`:""}
       </tbody></table></div>
-    <p class="hint" style="margin:.6rem 0 0">You keep <b>${money(ltcg-A.total)}</b> of ${money(ltcg)} realized${wage>0?`, before any income tax on the wages`:""}.</p>`;
+    <p class="hint" style="margin:.6rem 0 0">You keep <b>${money(ltcg-A.total)}</b> of ${money(ltcg)} realized${wage>0||interest>0?`, before any income tax on the ${[wage>0?"wages":null,interest>0?"interest":null].filter(Boolean).join(" or ")}`:""}.${wage>0&&interest>0?` The two memo lines each price one input with the other left where it is, so they don't add up.`:""}</p>`;
 
   renderCharts({ wage, base, extra, K, delta: d, penalty });
 }
@@ -423,6 +443,7 @@ function applyStatus(){
 }
 
 ticks($("wTicks"), $("wage"), [{v:0,l:"$0"},{v:200000,l:"$200K"},{v:400000,l:"$400K"},{v:600000,l:"$600K"},{v:800000,l:"$800K"}]);
+ticks($("iTicks"), $("interest"), [{v:0,l:"$0"},{v:100000,l:"$100K"},{v:200000,l:"$200K"},{v:300000,l:"$300K"}]);
 ticks($("lTicks"), $("ltcg"), [{v:0,l:"$0"},{v:278000,l:"$278K",s:"WA starts"},{v:613700,l:"$614K",s:"20% fed"},{v:1278000,l:"$1.278M",s:"WA 9.9%"}]);
 ticks($("xTicks"), $("extra"), [{v:0,l:"$0"},{v:125000,l:"$125K"},{v:250000,l:"$250K"},{v:375000,l:"$375K"},{v:500000,l:"$500K"}]);
 
